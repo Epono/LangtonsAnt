@@ -2,10 +2,10 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="/Users/dev2/eclipse_Mars/Libs/lwjgl/jar/lwjgl.jar">
+	<classpathentry kind="lib" path="libs/lwjgl/jar/lwjgl.jar">
 		<attributes>
-			<attribute name="javadoc_location" value="jar:file:/Users/dev2/eclipse_Mars/Libs/lwjgl/doc/javadoc.zip!/"/>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Users/dev2/eclipse_Mars/Libs/lwjgl/native"/>
+			<attribute name="javadoc_location" value="jar:platform:/resource/LangtonsAnt/libs/lwjgl/doc/javadoc.zip!/"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="LangtonsAnt/libs/lwjgl/native"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
