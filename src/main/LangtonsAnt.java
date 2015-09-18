@@ -59,26 +59,6 @@ public class LangtonsAnt {
             initGL();
             initGame();
 
-            // This line is critical for LWJGL's interoperation with GLFW's
-            // OpenGL context, or any context that is managed externally.
-            // LWJGL detects the context that is current in the current thread,
-            // creates the ContextCapabilities instance and makes the OpenGL
-            // bindings available for use.
-            GLContext.createFromCurrent(); // use this line instead with the
-                                           // 3.0.0a
-                                           // build
-
-            // Set the clear color
-            glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
-
-            glMatrixMode(GL11.GL_PROJECTION);
-            glLoadIdentity();
-            glOrtho(0, windowWidth, windowHeight, 0, 1, -1);
-            glMatrixMode(GL11.GL_MODELVIEW);
-
-            // Run the rendering loop until the user has attempted to close
-            // the window or has pressed the ESCAPE key.
-
             // TODO: Gameloop
             // http://entropyinteractive.com/2011/02/game-engine-design-the-game-loop/
             while (glfwWindowShouldClose(window) == GL_FALSE) {
@@ -137,6 +117,16 @@ public class LangtonsAnt {
 
         // Make the window visible
         glfwShowWindow(window);
+
+        GLContext.createFromCurrent();
+
+        // Set the clear color
+        glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+
+        glMatrixMode(GL11.GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(0, windowWidth, windowHeight, 0, 1, -1);
+        glMatrixMode(GL11.GL_MODELVIEW);
     }
 
     private void setupCallbacks() {
