@@ -67,4 +67,16 @@ public class Coordinate2D {
     public String toString() {
         return "(" + x + ", " + y + ")";
     }
+
+    public static void clampPosition(Coordinate2D newAntPosition, int width, int height) {
+        if (newAntPosition.getX() >= width) {
+            newAntPosition.setX(0);
+        } else if (newAntPosition.getX() < 0) {
+            newAntPosition.setX(width - 1);
+        } else if (newAntPosition.getY() >= height) {
+            newAntPosition.setY(0);
+        } else if (newAntPosition.getY() < 0) {
+            newAntPosition.setY(height - 1);
+        }
+    }
 }

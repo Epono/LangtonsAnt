@@ -6,8 +6,9 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.lwjgl.Sys;
 import org.lwjgl.glfw.GLFWCursorEnterCallback;
 import org.lwjgl.glfw.GLFWCursorPosCallback;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -29,17 +30,25 @@ public class LangtonsAnt {
     private GLFWCursorEnterCallback enterCallback;
     private int                     windowWidth  = 640;
     private int                     windowHeight = 640;
-    private int                     windowXPos;
-    private int                     windowYPos;
-    private int                     moveStep     = 10;
     private double                  mousePosX;
     private double                  mousePosY;
+    private double                  offsetX      = 0;
+    private double                  offsetY      = 0;
+
+    Map<Integer, Boolean> buttonsState = new HashMap<Integer, Boolean>();
+    private CellColor     selectedCellColor;
 
     // The window handle
     private long window;
 
     // Game field
-    private Board board;
+    private Board   board;
+    private int     boardSize                = 128;
+    private double  numberOfSquaresToDisplay = 128;
+    private boolean paused                   = false;
+    private boolean stepByStep               = false;
+    private boolean updateNextStep           = false;
+    private boolean draw                     = false;
 
     public void run() {
         // System.out.println("Hello LWJGL " + Sys.getVersion() + "!");
@@ -67,6 +76,9 @@ public class LangtonsAnt {
 
             // Run the rendering loop until the user has attempted to close
             // the window or has pressed the ESCAPE key.
+
+            // TODO: Gameloop
+            // http://entropyinteractive.com/2011/02/game-engine-design-the-game-loop/
             while (glfwWindowShouldClose(window) == GL_FALSE) {
                 update();
                 render();
@@ -113,9 +125,8 @@ public class LangtonsAnt {
         ByteBuffer vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
         // Center our window
-        windowXPos = (GLFWvidmode.width(vidmode) - windowWidth) / 2;
-        windowYPos = ((GLFWvidmode.height(vidmode) - windowHeight) / 2) - 100;
-        glfwSetWindowPos(window, windowXPos, windowYPos);
+        glfwSetWindowPos(window, (GLFWvidmode.width(vidmode) - windowWidth) / 2,
+                ((GLFWvidmode.height(vidmode) - windowHeight) / 2) - 100);
 
         // Make the OpenGL context current
         glfwMakeContextCurrent(window);
@@ -139,78 +150,67 @@ public class LangtonsAnt {
                                 // We will detect in our rendering loop
                                 glfwSetWindowShouldClose(window, GL_TRUE);
                                 break;
-                            default:
-                                break;
                         }
                         break;
                     case GLFW_PRESS:
                         switch (key) {
                             case GLFW_KEY_W:
-                                windowYPos -= moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
                             case GLFW_KEY_S:
-                                windowYPos += moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
                             case GLFW_KEY_A:
-                                windowXPos -= moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
                             case GLFW_KEY_D:
-                                windowXPos += moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
-                            default:
+                            case GLFW_KEY_P:
+                                paused = !paused;
+                                break;
+                            case GLFW_KEY_B:
+                                stepByStep = !stepByStep;
+                                break;
+                            case GLFW_KEY_N:
+                                updateNextStep = true;
+                                break;
+                            case GLFW_KEY_V:
+                                draw = !draw;
                                 break;
                         }
                         break;
                     case GLFW_REPEAT:
                         switch (key) {
                             case GLFW_KEY_W:
-                                windowYPos -= moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
                             case GLFW_KEY_S:
-                                windowYPos += moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
                             case GLFW_KEY_A:
-                                windowXPos -= moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
                             case GLFW_KEY_D:
-                                windowXPos += moveStep;
-                                glfwSetWindowPos(window, windowXPos, windowYPos);
                                 break;
-                            default:
+                            case GLFW_KEY_N:
+                                updateNextStep = true;
                                 break;
                         }
-                        break;
-                    default:
                         break;
                 }
             }
         });
 
+        buttonsState.put(GLFW_MOUSE_BUTTON_1, false);
+
         glfwSetMouseButtonCallback(window, mouseCallback = new GLFWMouseButtonCallback() {
             @Override
             public void invoke(long window, int button, int action, int mods) {
-                // GLFW_PRESS
-                // GLFW_RELEASE
-                switch (button) {
-                    case GLFW_MOUSE_BUTTON_1:
-                        break;
-                    case GLFW_MOUSE_BUTTON_2:
-                        break;
-                    case GLFW_MOUSE_BUTTON_3:
-                        break;
-                    case GLFW_MOUSE_BUTTON_4:
-                        break;
-                    case GLFW_MOUSE_BUTTON_5:
-                        break;
-                    default:
-                        break;
+                // TODO: Compute mods (alt, shift, etc)
+                buttonsState.put(button, action == GLFW_PRESS);
+
+                if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
+                    if (draw) {
+                        // TODO: ugglyest approximation ever
+                        Coordinate2D selectedCell = new Coordinate2D((int) mousePosX * boardSize / windowWidth,
+                                (int) mousePosY * boardSize / windowHeight);
+                        board.toggleCellColorAt(selectedCell);
+                        selectedCellColor = board.getCellColorAt(selectedCell);
+                    }
                 }
             }
         });
@@ -218,40 +218,82 @@ public class LangtonsAnt {
         glfwSetCursorPosCallback(window, posCallback = new GLFWCursorPosCallback() {
             @Override
             public void invoke(long window, double xpos, double ypos) {
-                mousePosX = xpos;
-                mousePosY = ypos;
+                if (buttonsState.get(GLFW_MOUSE_BUTTON_1)) {
+                    if (draw) {
+                        // TODO: fix offset
+                        if (board.getCellColorAt((int) mousePosX * boardSize / windowWidth,
+                                (int) mousePosY * boardSize / windowHeight) != selectedCellColor)
+                            board.setCellColorAt((int) mousePosX * boardSize / windowWidth,
+                                    (int) mousePosY * boardSize / windowHeight, selectedCellColor);
+                    } else {
+                        offsetX += xpos - mousePosX;
+                        offsetY += ypos - mousePosY;
+
+                        mousePosX = xpos;
+                        mousePosY = ypos;
+                    }
+                } else {
+                    mousePosX = xpos;
+                    mousePosY = ypos;
+                }
             }
         });
 
         glfwSetScrollCallback(window, scrollCallback = new GLFWScrollCallback() {
             @Override
             public void invoke(long window, double xoffset, double yoffset) {
-
+                if (numberOfSquaresToDisplay - yoffset > 10) {
+                    numberOfSquaresToDisplay -= yoffset;
+                }
             }
         });
 
         glfwSetCursorEnterCallback(window, enterCallback = new GLFWCursorEnterCallback() {
             @Override
             public void invoke(long window, int entered) {
+                // TODO: Add trigger to avoid out of bounds exception when the
+                // mouse leaves the window and button 1 pressed
             }
         });
     }
 
+    /**
+     * Initializes game logic
+     */
     private void initGame() {
-        board = new Board(64, 64);
-        Ant ant = new Ant(new Coordinate2D(32, 32));
-        board.setAnt(ant);
+        board = new Board(boardSize);
+        Ant ant = new Ant(new Coordinate2D(boardSize / 2, boardSize / 2));
+        board.setMainAnt(ant);
     }
 
+    /**
+     * Called each frame (for now, as soon as possible)
+     */
     private void update() {
-        board.moveAnt();
+        if (!paused) {
+            if (stepByStep) {
+                if (updateNextStep) {
+                    board.moveAnt(board.getMainAnt());
+                    updateNextStep = false;
+                }
+            } else {
+                board.moveAnt(board.getMainAnt());
+            }
+        }
     }
 
+    /**
+     * Called as soon as possible to render
+     */
     private void render() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the
         // framebuffer
 
-        Coordinate2D squareSize = new Coordinate2D(windowWidth / board.getWidth(), windowHeight / board.getHeight());
+        // Coordinate2D squareSize = new Coordinate2D(windowWidth /
+        // board.getWidth(), windowHeight / board.getHeight());
+        // System.out.println(offsetX);
+        Coordinate2D squareSize = new Coordinate2D(windowWidth / (int) numberOfSquaresToDisplay);
+        Coordinate2D mouseOffset = new Coordinate2D((int) -offsetX, (int) -offsetY);
 
         for (int y = 0; y < board.getHeight(); y++) {
             for (int x = 0; x < board.getWidth(); x++) {
@@ -267,19 +309,62 @@ public class LangtonsAnt {
                 }
 
                 glBegin(GL_QUADS);
-                glVertex2i((x * squareSize.getX()) + 1, (y * squareSize.getY()) + 1); // top-left
-                // vertex
-                glVertex2i(((x + 1) * squareSize.getX()) - 1, (y * squareSize.getY()) + 1); // top-right
-                // vertex
-                glVertex2i(((x + 1) * squareSize.getX()) - 1, ((y + 1) * squareSize.getY()) - 1); // bottom-right
-                // vertex
-                glVertex2i((x * squareSize.getX()) + 1, ((y + 1) * squareSize.getY()) - 1); // bottom-left
-                // vertex
+                // top-left, top-right, bottom-right, bottom-left
+                glVertex2i((x * squareSize.getX()) + 1 - mouseOffset.getX(),
+                        (y * squareSize.getY()) + 1 - mouseOffset.getY());
+                glVertex2i(((x + 1) * squareSize.getX()) - 1 - mouseOffset.getX(),
+                        (y * squareSize.getY()) + 1 - mouseOffset.getY());
+                glVertex2i(((x + 1) * squareSize.getX()) - 1 - mouseOffset.getX(),
+                        ((y + 1) * squareSize.getY()) - 1 - mouseOffset.getY());
+                glVertex2i((x * squareSize.getX()) + 1 - mouseOffset.getX(),
+                        ((y + 1) * squareSize.getY()) - 1 - mouseOffset.getY());
                 glEnd();
             }
         }
 
         // Draw ant
+        Coordinate2D mainAntPosition = board.getMainAnt().getPosition();
+        Coordinate2D centerOfSquare = new Coordinate2D(
+                mainAntPosition.getX() * squareSize.getX() + (squareSize.getX() / 2),
+                mainAntPosition.getY() * squareSize.getY() + (squareSize.getY() / 2));
+
+        glColor3f(1.0f, 0.0f, 0.0f);
+        glBegin(GL_TRIANGLES);
+        switch (board.getMainAnt().getFacingDireaction()) {
+            case UP:
+                glVertex2i(centerOfSquare.getX() - mouseOffset.getX(),
+                        centerOfSquare.getY() - (squareSize.getY() / 2) - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() - (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() + (squareSize.getY() / 2) - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() + (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() + (squareSize.getY() / 2) - mouseOffset.getY());
+                break;
+            case DOWN:
+                glVertex2i(centerOfSquare.getX() - mouseOffset.getX(),
+                        centerOfSquare.getY() + (squareSize.getY() / 2) - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() + (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() - (squareSize.getY() / 2) - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() - (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() - (squareSize.getY() / 2) - mouseOffset.getY());
+                break;
+            case LEFT:
+                glVertex2i(centerOfSquare.getX() - (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() + (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() + (squareSize.getY() / 2) - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() + (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() - (squareSize.getY() / 2) - mouseOffset.getY());
+                break;
+            case RIGHT:
+                glVertex2i(centerOfSquare.getX() + (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() - (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() - (squareSize.getY() / 2) - mouseOffset.getY());
+                glVertex2i(centerOfSquare.getX() - (squareSize.getX() / 2) - mouseOffset.getX(),
+                        centerOfSquare.getY() + (squareSize.getY() / 2) - mouseOffset.getY());
+                break;
+        }
+        glEnd();
 
         glfwSwapBuffers(window); // swap the color buffers
 

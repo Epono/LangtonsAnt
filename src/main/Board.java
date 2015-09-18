@@ -1,6 +1,8 @@
 package main;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Board {
     private int width;
@@ -8,13 +10,16 @@ public class Board {
 
     CellColor[][] board;
 
-    private Ant ant;
+    private Ant       mainAnt;
+    private List<Ant> ants;
 
     public Board() {
         super();
         this.width = 64;
         this.height = 64;
         board = new CellColor[this.width][this.height];
+        ants = new ArrayList<Ant>();
+        fillInWhite();
     }
 
     public Board(int size) {
@@ -22,6 +27,8 @@ public class Board {
         this.width = size;
         this.height = size;
         board = new CellColor[this.width][this.height];
+        ants = new ArrayList<Ant>();
+        fillInWhite();
     }
 
     public Board(int width, int height) {
@@ -29,6 +36,16 @@ public class Board {
         this.width = width;
         this.height = height;
         board = new CellColor[this.width][this.height];
+        ants = new ArrayList<Ant>();
+        fillInWhite();
+    }
+
+    private void fillInWhite() {
+        for (int x = 0; x < this.width; x++) {
+            for (int y = 0; y < this.height; y++) {
+                board[x][y] = CellColor.WHITE;
+            }
+        }
     }
 
     public int getWidth() {
@@ -41,6 +58,14 @@ public class Board {
 
     public CellColor[][] getBoard() {
         return board;
+    }
+
+    public List<Ant> getAnts() {
+        return ants;
+    }
+
+    public void setAnts(List<Ant> ants) {
+        this.ants = ants;
     }
 
     public CellColor getCellColorAt(Coordinate2D coordinate2d) {
@@ -75,25 +100,34 @@ public class Board {
         }
     }
 
-    public Ant getAnt() {
-        return ant;
+    public Ant getMainAnt() {
+        return mainAnt;
     }
 
-    public void setAnt(Ant ant) {
-        this.ant = ant;
+    public void setMainAnt(Ant mainAnt) {
+        this.mainAnt = mainAnt;
     }
 
-    public void moveAnt() {
-        Coordinate2D initialAntPosition = new Coordinate2D(ant.getPosition());
-        Coordinate2D newAntPosition = new Coordinate2D(ant.getPosition());
+    public void moveAnt(Ant ant) {
+        Coordinate2D initialAntPosition = new Coordinate2D(mainAnt.getPosition());
+        Coordinate2D newAntPosition = new Coordinate2D(mainAnt.getPosition());
 
         // Rotate and move the ant
-        Direction newFacingDirection = ant.rotate(getCellColorAt(initialAntPosition));
+        Direction newFacingDirection = mainAnt.rotate(getCellColorAt(initialAntPosition));
         newAntPosition.move(newFacingDirection);
-        ant.setPosition(newAntPosition);
+        // Way around out of bounds exception
+        // Coordinate2D.clampPosition(newAntPosition, width, height);
+        //
+        mainAnt.setPosition(newAntPosition);
 
         // Change the color of the cell the ant juste left
         toggleCellColorAt(initialAntPosition);
+    }
+
+    public void moveAnts() {
+        for (Ant ant : ants) {
+            moveAnt(ant);
+        }
     }
 
     @Override
