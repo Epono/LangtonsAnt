@@ -50,6 +50,8 @@ public class LangtonsAnt {
     private boolean updateNextStep           = false;
     private boolean draw                     = false;
 
+    private int step = 0;
+
     public void run() {
         // System.out.println("Hello LWJGL " + Sys.getVersion() + "!");
 
@@ -174,6 +176,9 @@ public class LangtonsAnt {
                             case GLFW_KEY_V:
                                 draw = !draw;
                                 break;
+                            case GLFW_KEY_O:
+                                System.out.println("Step : " + step);
+                                break;
                         }
                         break;
                     case GLFW_REPEAT:
@@ -275,9 +280,17 @@ public class LangtonsAnt {
                 if (updateNextStep) {
                     board.moveAnt(board.getMainAnt());
                     updateNextStep = false;
+                    step++;
                 }
             } else {
                 board.moveAnt(board.getMainAnt());
+                step++;
+            }
+        } else {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }

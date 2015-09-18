@@ -8,7 +8,7 @@ public class Board {
     private int width;
     private int height;
 
-    CellColor[][] board;
+    private CellColor[][] board;
 
     private Ant       mainAnt;
     private List<Ant> ants;
